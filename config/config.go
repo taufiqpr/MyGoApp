@@ -13,6 +13,8 @@ import (
 var (
 	DB        *gorm.DB
 	JWTSecret []byte
+	BaseURL string
+	ApiKey string
 )
 
 func LoadConfig() {
@@ -22,9 +24,14 @@ func LoadConfig() {
 
 	dsn := os.Getenv("DATABASE_DSN")
 	secret := os.Getenv("JWT_SECRET")
+	BaseURL = os.Getenv("SPOONACULAR_BASE_URL")
+	ApiKey = os.Getenv("SPOONACULAR_API_KEY")
 
 	if dsn == "" || secret == "" {
 		log.Fatal("DATABASE_DSN or JWT_SECRET is empty")
+	}
+	if BaseURL == "" || ApiKey == "" {
+		log.Fatal("SPOONACULAR_BASE_URL or SPOONACULAR_API_KEY is empty")
 	}
 
 	JWTSecret = []byte(secret)

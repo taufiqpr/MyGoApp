@@ -1,8 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"my-gin-app/project/config"
@@ -80,7 +84,8 @@ func Login(c *gin.Context) {
 	claims := jwt.MapClaims{
 		"sub":   user.ID,
 		"email": user.Email,
-		"exp":   time.Now().Add(24 * time.Hour).Unix(),
+		"name": user.Name,
+		"exp":   time.Now().Add(30 * time.Minute).Unix(),
 		"iat":   time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -109,4 +114,136 @@ func Me(c *gin.Context) {
 		"email":   email,
 		"created": user.CreatedAt,
 	})
+}
+
+func GetProfile(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	var user models.User
+	if err:= config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id": user.ID,
+		"name": user.Name,
+		"email": user.Email,
+	})
+}
+
+func UpdateProfile(c *gin.Context){
+	userID := c.GetUint("user_id")
+	var req models.UpdateProfileRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload", "detail": err.Error()})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+
+	if req.Email != "" {
+		user.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	}
+	if req.Password != "" {
+		hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		user.PasswordHash = string(hash)
+	}
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "profile updated",
+		"user": gin.H{
+			"id": user.ID,
+			"name": user.Name,
+			"email": user.Email,
+		},
+	})
+}
+
+func DeleteProfile(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	if err := config.DB.Delete(&models.User{}, userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"msg": "akun deleted"})
+}
+
+func GetRecipes(c *gin.Context) {
+	query := c.Query("query")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Query is required"})
+		return
+	}
+
+	url := fmt.Sprintf("%s/recipes/complexSearch?query=%s&number=10&addRecipeInformation=true&apiKey=%s",
+		config.BaseURL, query, config.ApiKey)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recipes"})
+		return
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from API"})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+func GetRecipeDetail(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Recipe ID is required"})
+		return
+	}
+
+	url := fmt.Sprintf("%s/recipes/%s/information?apiKey=%s", config.BaseURL, id, config.ApiKey)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to call API"})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recipe detail"})
+		return
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid response from API"})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
 }

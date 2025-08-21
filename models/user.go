@@ -25,3 +25,9 @@ type LoginRequest struct {
 type TokenResponse struct {
 	Token string `json:"token"`
 }
+
+type UpdateProfileRequest struct {
+    Name     string `json:"name" binding:"omitempty,min=3,max=50"`
+    Email    string `json:"email" binding:"omitempty,email,max=100"`
+    Password string `json:"password" binding:"omitempty,min=5,max=50"`
+}
