@@ -11,10 +11,10 @@ import (
 
 func main() {
 	config.LoadConfig()
+	config.InitMinio()
 
-	if err := config.DB.AutoMigrate(&models.User{}); err != nil {
-		panic(fmt.Sprintf("Failed to migrate: %v", err))
-	}
+	if err := config.DB.AutoMigrate(&models.User{}, &models.Product{}, &models.BankAccount{}, &models.Payment{}); err != nil {
+    panic(fmt.Sprintf("Failed to migrate: %v", err))}
 
 	r := gin.Default()
 	routes.Setup(r)
