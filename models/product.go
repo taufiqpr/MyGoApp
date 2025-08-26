@@ -34,12 +34,12 @@ type CreateProductRequest struct {
 }
 
 type UpdateProductRequest struct {
-    Name           string            `json:"name" binding:"omitempty,min=5,max=60"`
+    Name           string            `json:"name" binding:"required,min=5,max=60"`
     Price          *int              `json:"price" binding:"omitempty,min=0"`
     ImageURL       string            `json:"imageUrl" binding:"omitempty,url"`
     Stock          *int              `json:"stock" binding:"omitempty,min=0"`
     Condition      ProductCondition  `json:"condition" binding:"omitempty,oneof=new second"`
-    Tags           string          `json:"tags"`
+    Tags           string            `json:"tags"`
     IsPurchaseable *bool             `json:"isPurchaseable"`
 }
 

@@ -17,6 +17,13 @@ func CreateBankAccount(c *gin.Context) {
     }
 
     userID := c.GetUint("user_id")
+
+    var existing models.BankAccount
+    if err := config.DB.Where("user_id = ? AND bank_account_number = ?", userID, req.BankAccountNumber).First(&existing).Error; err == nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "account number already exists"})
+        return
+    }
+
     account := models.BankAccount{
         BankName:          req.BankName,
         BankAccountName:   req.BankAccountName,
@@ -65,23 +72,27 @@ func UpdateBankAccount(c *gin.Context) {
         return
     }
 
+    updates := map[string]interface{}{}
     if req.BankName != "" {
-        account.BankName = req.BankName
+        updates["bank_name"] = req.BankName
     }
     if req.BankAccountName != "" {
-        account.BankAccountName = req.BankAccountName
+        updates["bank_account_name"] = req.BankAccountName
     }
     if req.BankAccountNumber != "" {
-        account.BankAccountNumber = req.BankAccountNumber
+        updates["bank_account_number"] = req.BankAccountNumber
     }
 
-    if err := config.DB.Save(&account).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
-        return
+    if len(updates) > 0 {
+        if err := config.DB.Model(&account).Updates(updates).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
+            return
+        }
     }
 
     c.JSON(http.StatusOK, gin.H{"message": "account updated successfully", "data": account})
 }
+
 
 func DeleteBankAccount(c *gin.Context) {
     userID := c.GetUint("user_id")

@@ -6,7 +6,7 @@ type BankAccount struct {
     ID                uint      `gorm:"primaryKey" json:"bankAccountId"`
     BankName          string    `gorm:"size:15;not null" json:"bankName"`
     BankAccountName   string    `gorm:"size:50;not null" json:"bankAccountName"`
-    BankAccountNumber string    `gorm:"size:30;not null" json:"bankAccountNumber"`
+    BankAccountNumber string    `gorm:"uniqueIndex:idx_user_bank_number"`
     UserID            uint      `gorm:"not null" json:"userId"`
     CreatedAt         time.Time `json:"createdAt"`
     UpdatedAt         time.Time `json:"updatedAt"`
