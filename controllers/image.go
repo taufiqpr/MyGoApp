@@ -48,7 +48,6 @@ func UploadImage(c *gin.Context) {
 		return
 	}
 
-	// build URL (misal public endpoint)
 	url := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_BASE_URL"), config.S3Bucket, fileName)
 	c.JSON(http.StatusOK, gin.H{"imageUrl": url})
 }

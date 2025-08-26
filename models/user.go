@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type User struct {
 	ID           uint      `gorm:"primaryKey"`
@@ -9,6 +13,7 @@ type User struct {
 	PasswordHash string    `gorm:"not null"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type RegisterRequest struct {
@@ -24,10 +29,4 @@ type LoginRequest struct {
 
 type TokenResponse struct {
 	Token string `json:"token"`
-}
-
-type UpdateProfileRequest struct {
-    Name     string `json:"name" binding:"omitempty,min=3,max=50"`
-    Email    string `json:"email" binding:"omitempty,email,max=100"`
-    Password string `json:"password" binding:"omitempty,min=5,max=50"`
 }

@@ -29,7 +29,7 @@ type CreateProductRequest struct {
     ImageURL       string            `json:"imageUrl" binding:"required,url"`
     Stock          int               `json:"stock" binding:"required,min=0"`
     Condition      ProductCondition  `json:"condition" binding:"required,oneof=new second"`
-    Tags           string          `json:"tags"`
+    Tags           string            `json:"tags"`
     IsPurchaseable bool              `json:"isPurchaseable" binding:"required"`
 }
 

@@ -13,7 +13,6 @@ import (
 
 func Healths(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
-	return
 }
 
 func CreateProduct(c *gin.Context) {
@@ -57,29 +56,36 @@ func UpdateProduct(c *gin.Context) {
         return
     }
 
+    updates := map[string]interface{}{}
+
     if req.Name != "" {
-        product.Name = req.Name
+        updates["name"] = req.Name
     }
     if req.Price != nil {
-        product.Price = *req.Price
+        updates["price"] = *req.Price
     }
     if req.ImageURL != "" {
-        product.ImageURL = req.ImageURL
+        updates["image_url"] = req.ImageURL
     }
     if req.Stock != nil {
-        product.Stock = *req.Stock
+        updates["stock"] = *req.Stock
     }
     if req.Condition != "" {
-        product.Condition = req.Condition
+        updates["condition"] = req.Condition
     }
     if req.Tags != "" {
-        product.Tags = req.Tags
+        updates["tags"] = req.Tags
     }
     if req.IsPurchaseable != nil {
-        product.IsPurchaseable = *req.IsPurchaseable
+        updates["is_purchaseable"] = *req.IsPurchaseable
     }
 
-    if err := config.DB.Save(&product).Error; err != nil {
+    if len(updates) == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "no fields to update"})
+        return
+    }
+
+    if err := config.DB.Model(&product).Updates(updates).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
         return
     }
@@ -88,10 +94,19 @@ func UpdateProduct(c *gin.Context) {
 }
 
 func DeleteProduct(c *gin.Context) {
-    if err := config.DB.Delete(&models.Product{}, c.Param("id")).Error; err != nil {
+    result := config.DB.Delete(&models.Product{}, c.Param("id"))
+
+    if result.Error != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "db error"})
         return
     }
+
+    if result.RowsAffected == 0 {
+        
+        c.JSON(http.StatusBadRequest, gin.H{"error": "product not found"})
+        return
+    }
+
     c.JSON(http.StatusOK, gin.H{"message": "product deleted successfully"})
 }
 
@@ -111,7 +126,7 @@ func UpdateStock(c *gin.Context) {
         return
     }
 
-    // cek apakah yang update adalah owner product
+    
     if product.UserID != userID {
         c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
         return
@@ -127,7 +142,7 @@ func UpdateStock(c *gin.Context) {
 }
 
 func ListProductsWithFilter(c *gin.Context) {
-	// query params
+	
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	tags := c.QueryArray("tags")
@@ -193,7 +208,6 @@ func GetProductDetail(c *gin.Context) {
 		return
 	}
 
-	// hitung total produk terjual (purchaseCount butuh tabel orders/payments)
 	var purchaseCount int64
 	config.DB.Model(&models.Payment{}).Where("product_id = ?", product.ID).Count(&purchaseCount)
 

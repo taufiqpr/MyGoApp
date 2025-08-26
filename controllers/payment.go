@@ -19,7 +19,6 @@ func BuyProduct(c *gin.Context) {
 		return
 	}
 
-	// cek produk
 	var product models.Product
 	if err := config.DB.First(&product, productID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
@@ -31,7 +30,6 @@ func BuyProduct(c *gin.Context) {
 		return
 	}
 
-	// cek rekening seller
 	var account models.BankAccount
 	if err := config.DB.First(&account, req.BankAccountID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "bank account not found"})
@@ -42,7 +40,6 @@ func BuyProduct(c *gin.Context) {
 		return
 	}
 
-	// buat payment record
 	payment := models.Payment{
 		ProductID:            product.ID,
 		BuyerID:              buyerID,
@@ -56,7 +53,6 @@ func BuyProduct(c *gin.Context) {
 		return
 	}
 
-	// kurangi stok
 	product.Stock -= req.Quantity
 	config.DB.Save(&product)
 

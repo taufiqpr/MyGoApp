@@ -6,18 +6,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var (
-	DB        *gorm.DB
-	JWTSecret []byte
-	BaseURL string
-	ApiKey string
+	DB          *gorm.DB
+	JWTSecret   []byte
 	MinioClient *minio.Client
 	S3Bucket    string
 )
@@ -27,18 +25,21 @@ func LoadConfig() {
 		log.Fatal("Error loading .env file")
 	}
 
-	dsn := os.Getenv("DATABASE_DSN")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USERNAME")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s",
+		host, user, password, dbname, port,
+	)
+
 	secret := os.Getenv("JWT_SECRET")
-	BaseURL = os.Getenv("SPOONACULAR_BASE_URL")
-	ApiKey = os.Getenv("SPOONACULAR_API_KEY")
-
 	if dsn == "" || secret == "" {
-		log.Fatal("DATABASE_DSN or JWT_SECRET is empty")
+		log.Fatal("Database config or JWT_SECRET is empty")
 	}
-	if BaseURL == "" || ApiKey == "" {
-		log.Fatal("SPOONACULAR_BASE_URL or SPOONACULAR_API_KEY is empty")
-	}
-
 	JWTSecret = []byte(secret)
 
 	dbConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -51,21 +52,20 @@ func LoadConfig() {
 }
 
 func InitMinio() {
-	endpoint := os.Getenv("S3_ENDPOINT")      // misal http://localhost:9000
-	accessKeyID := os.Getenv("S3_ACCESS_KEY") // S3_ID
+	endpoint := os.Getenv("S3_ENDPOINT")
+	accessKeyID := os.Getenv("S3_ACCESS_KEY")
 	secretAccessKey := os.Getenv("S3_SECRET_KEY")
-	S3Bucket = os.Getenv("S3_BUCKET")         // misal "mybucket"
+	S3Bucket = os.Getenv("S3_BUCKET")
 
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: false, // kalau local http
+		Secure: false,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	MinioClient = minioClient
 
-	// create bucket kalau belum ada
 	exists, err := MinioClient.BucketExists(context.Background(), S3Bucket)
 	if err != nil {
 		log.Fatal(err)
